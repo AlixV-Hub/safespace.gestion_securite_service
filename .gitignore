@@ -8,3 +8,11 @@ logs/
 
 .DS_Store
 Thumbs.db
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Maven/Gradle build
+target/
+build/
