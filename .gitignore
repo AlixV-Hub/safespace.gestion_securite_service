@@ -1,27 +1,10 @@
-### Spring Boot ###
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-
-### Secrets - CRITIQUE ###
 .env
 .env.local
 .env.prod
-.env.*.local
-*.env
 
-### Logs ###
 *.log
 logs/
-/logs
 
-### Docker ###
-docker-compose.override.yml
 
-### OS ###
 .DS_Store
-.DS_Store?
-._*
 Thumbs.db
-Desktop.ini

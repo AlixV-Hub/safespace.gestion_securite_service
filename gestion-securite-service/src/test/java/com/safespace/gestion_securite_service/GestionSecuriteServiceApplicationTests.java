@@ -1,0 +1,13 @@
+package com.safespace.gestion_securite_service;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class GestionSecuriteServiceApplicationTests {
+
+	@Test
+	void contextLoads() {
+	}
+
+}

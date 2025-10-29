@@ -1,0 +1,105 @@
+spring:
+  application:
+    name: gestion-securite-service
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+server:
+  port: 8080
+
+management:
+  server:
+    port: 8080
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/safespace_db
+    username: safeuser
+    password: safepassword
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+logging:
+  level:
+    root: INFO
+    com.safespace.gestion_securite_service: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/safespace_test_db
+    username: safeuser
+    password: safepassword
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+logging:
+  level:
+    root: WARN
+    com.safespace.gestion_securite_service: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: jdbc:postgresql://postgres_db:5432/safespace_db
+    username: ${DB_USER:safeuser}
+    password: ${DB_PASSWORD:safepassword}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+logging:
+  level:
+    root: WARN
+    com.safespace.gestion_securite_service: INFO
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized

@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: safespace_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-safeuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-safepassword}
+      POSTGRES_DB: safespace_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - safespace-network
+
+# limitation des ressources/protection pc :
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-safeuser}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  gestion_securite_service:
+    build:
+      context: ./gestion-securite-service
+      dockerfile: gestion-securite-service/Dockerfile
+    container_name: safespace_security
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE:-prod}
+      DB_USER: ${DB_USER:-safeuser}
+      DB_PASSWORD: ${DB_PASSWORD:-safepassword}
+    depends_on:
+      - postgres_db
+    networks:
+      - safespace-network
+# Limitation des ressources/protection pc
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+volumes:
+  db_data:
+
+networks:
+  safespace-network:
+    driver: bridge
