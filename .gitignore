@@ -16,3 +16,6 @@ Thumbs.db
 # Maven/Gradle build
 target/
 build/
+
+#documents de travail personnel
+context.md
