@@ -1,306 +1,370 @@
-# 🛡️ Safe Space - Backend Gestion Sécurité
+# 🛡️ Safe Space - Backend
 
-> **Projet personnel dans le cadre académique du RNCP6 Concepteur développeur d'applications** - Plateforme sécurisée d'assistance à la rédaction de signalements et de mise en relation avec des ressources locales.
+> **Plateforme de Signalement et Preuve Collaborative contre les Violences au Travail**
 
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.7-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)](https://www.docker.com/)
-[![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://www.oracle.com/java/)
+Backend Spring Boot pour Safe Space - Système sécurisé permettant aux victimes et témoins de signaler, qualifier juridiquement (via IA) et conserver des preuves chiffrées des violences au travail.
 
 ---
 
-## 🎯 Vision du Projet
+## 📋 Table des Matières
 
-Safe Space est une plateforme de **signalement sécurisé** qui permet aux utilisateurs de :
-- Rédiger des signalements anonymisés avec assistance IA
-- Trouver des ressources locales géolocalisées
-- Bénéficier d'une modération pour garantir la qualité des ressources
-
-**Ce repository** contient le **Service C** : l'API Gateway et le cœur de la sécurité du système (authentification, autorisation, gestion des ressources).
+- [Vue d'ensemble](#-vue-densemble)
+- [Architecture](#-architecture)
+- [Technologies](#-technologies)
+- [Démarrage Rapide](#-démarrage-rapide)
+- [Configuration](#️-configuration)
+- [API Documentation](#-api-documentation)
+- [Base de Données](#️-base-de-données)
+- [Sécurité](#-sécurité)
+- [Tests](#-tests)
+- [Déploiement](#-déploiement)
+- [Roadmap](#️-roadmap)
+- [Contribution](#-contribution)
+- [License](#-license)
 
 ---
 
-## 🏗️ Architecture Microservices
+## 🎯 Vue d'ensemble
+
+**Safe Space** est une plateforme Tech for Good qui révolutionne la lutte contre les violences au travail grâce à **3 piliers** :
+
+### 1️⃣ Coffre-Fort Collaboratif Sécurisé
+- 🔐 **Victimes** : Stockent leurs preuves chiffrées (AES-256)
+- 👁️ **Témoins** : Conservent des preuves qu'ils proposent aux victimes (sans délation)
+- 🤝 **Mise à disposition** : Témoins → Victimes (anonymat garanti)
+- ⏰ **Horodatage certifié** : Valeur légale (RFC 3161)
+
+### 2️⃣ Qualification Juridique Automatique par IA
+- 🤖 **Formulaire intelligent** : Questions adaptatives en temps réel (WebSocket)
+- ⚖️ **Classification automatique** : Harcèlement moral, sexuel, discrimination, etc.
+- 📜 **Articles de loi** : Code du travail, Code pénal
+- 📊 **Confiance** : Score de précision (ex: 87%)
+
+### 3️⃣ Réseau de Ressources Géolocalisées
+- 🗺️ **Recherche spatiale** : Avocats, associations, syndicats (PostGIS)
+- 📍 **Rayon paramétrable** : 5, 10, 20 km
+- 🔍 **Filtres avancés** : Spécialités, langues, gratuit/payant
+
+---
+
+## 🏗️ Architecture
+
+### Microservices (3 services)
+
 ```
-┌─────────────────┐
-│   Frontend      │
-│   (Angular)     │
-└────────┬────────┘
-         │
-    ┌────┴─────────────────────┐
-    │                          │
-┌───▼──────────┐      ┌────────▼────────┐
-│  Service B   │      │   Service C     │ ◄── CE REPO
-│  (WebFlux)   │      │ (Spring Boot)   │
-│  Temps Réel  │      │ Auth & Gateway  │
-└──────────────┘      └────────┬────────┘
-                               │
-                      ┌────────▼────────┐
-                      │  PostgreSQL/    │
-                      │  PostGIS        │
-                      └─────────────────┘
-                               │
-                      ┌────────▼────────┐
-                      │   Service A     │
-                      │  (Python/IA)    │
-                      │  Classification │
-                      └─────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                   FRONTEND (Angular 17)                 │
+│  • Interface responsive                                 │
+│  • WebSocket (temps réel)                               │
+│  • Carte interactive (Leaflet + PostGIS)                │
+└────────────────┬────────────────────────────────────────┘
+                 │
+        ┌────────┴────────────────────┐
+        │                             │
+┌───────▼────────┐          ┌─────────▼─────────┐
+│  SERVICE C     │          │    SERVICE B      │
+│ (Spring Boot)  │◄────────►│ (Spring WebFlux)  │
+│                │          │                   │
+│ • Auth JWT     │          │ • WebSocket       │
+│ • CRUD         │          │ • Questions IA    │
+│ • Coffre-fort  │          │   temps réel      │
+│ • Géoloc       │          └───────────────────┘
+│ • PostgreSQL   │                    │
+└───────┬────────┘          ┌─────────▼─────────┐
+        │                   │    SERVICE A      │
+        └──────────────────►│ (Python/FastAPI)  │
+                            │                   │
+                            │ • Classification  │
+                            │ • NLP (spaCy)     │
+                            │ • MLOps          │
+                            └───────────────────┘
 ```
 
 ---
 
-## 🔐 Service C - Responsabilités
+## 💻 Technologies
 
-Ce service est le **cœur du système** et gère :
+### Service C (Backend Principal)
+- Spring Boot 3.4.0
+- Java 21
+- Spring Security + JWT
+- Spring Data JPA (Hibernate)
+- PostgreSQL 16 + PostGIS
+- Docker
 
-| Fonctionnalité | Description |
-|----------------|-------------|
-| 🔑 **Authentification** | JWT + Spring Security (BCrypt) |
-| 👥 **Gestion des Rôles** | RBAC (Utilisateur, Modérateur) |
-| 📝 **Gestion des Ressources** | CRUD + Workflow de modération (PENDING → APPROVED) |
-| 🗺️ **Géolocalisation** | Recherche par rayon (PostGIS) |
-| 📊 **Monitoring** | Spring Boot Actuator |
+### Service A (IA)
+- Python 3.11+
+- FastAPI
+- spaCy (NLP)
+- scikit-learn
 
----
-
-## 🚀 Technologies
-
-### Backend
-- **Spring Boot 3.5.7** - Framework principal
-- **Spring Security** - Authentification JWT + RBAC
-- **Spring Data JPA** - ORM Hibernate
-- **PostgreSQL 16** - Base de données relationnelle
-- **PostGIS** - Extension géospatiale (à venir)
-- **Lombok** - Réduction du boilerplate
-
-### DevOps
-- **Docker & Docker Compose** - Conteneurisation
-- **Maven** - Build automation
-
-### Monitoring
-- **Spring Boot Actuator** - Health checks & metrics
+### Service B (Temps Réel)
+- Spring WebFlux
+- WebSocket (STOMP)
+- Reactor
 
 ---
 
-## 📋 User Stories Implémentées
-
-| ID | Rôle | Fonctionnalité | Statut |
-|----|------|----------------|--------|
-| C.1 | Utilisateur | Inscription (mot de passe BCrypt) | 🔄 En cours |
-| C.2 | Utilisateur | Connexion (JWT) | 🔄 En cours |
-| C.3 | Utilisateur | Créer une ressource (statut PENDING) | 📅 Planifié |
-| C.4 | Modérateur | Valider une ressource (PENDING → APPROVED) | 📅 Planifié |
-| C.5 | Utilisateur | Recherche géolocalisée (rayon 10km) | 📅 Planifié |
-
----
-
-## 🏃 Démarrage Rapide
+## 🚀 Démarrage Rapide
 
 ### Prérequis
 
-- **Docker & Docker Compose** installés
-- **Java 17** (pour développement local)
-- **Maven** (inclus via wrapper)
+- Docker & Docker Compose
+- Java 21 (pour dev local)
+- PostgreSQL 16 (pour dev local)
 
----
+### Installation
 
-### 🐳 Option 1 : Avec Docker (Recommandé)
-
-Lance l'environnement complet (PostgreSQL + Application) :
 ```bash
-# Clone le repository
-git clone https://github.com/TON_USERNAME/safe-space-backend.git
+# Cloner le repository
+git clone https://github.com/ton-username/safe-space-backend.git
 cd safe-space-backend
 
-# Lance tous les services
-docker-compose up --build
-
-# L'API sera disponible sur http://localhost:8080
-```
-
----
-
-### 💻 Option 2 : Développement Local
-
-Lance uniquement PostgreSQL avec Docker, et l'application en local pour le hot reload :
-```bash
-# 1. Lance la base de données
-docker-compose up postgres_db -d
-
-# 2. Lance l'application Spring Boot
-cd gestion-securite-service
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
-
-# L'API sera disponible sur http://localhost:8080
-```
-
----
-
-## 🔧 Configuration
-
-### Profils disponibles
-
-| Profil | Environnement | DDL Auto | Logs | Usage |
-|--------|---------------|----------|------|-------|
-| **dev** | Développement local | `update` | DEBUG | Hot reload, PostgreSQL sur localhost |
-| **test** | Tests automatisés | `create-drop` | WARN | Base recréée à chaque test |
-| **prod** | Production (Docker) | `validate` | INFO | Sécurisé, pas de modification BDD |
-
-### Variables d'environnement
-
-Pour personnaliser la configuration en production, créez un fichier `.env` :
-```bash
-# Copier le template
+# Copier .env.example → .env
 cp .env.example .env
 
-# Éditer avec vos valeurs
-SPRING_PROFILE=prod
-DB_USER=votreuser
-DB_PASSWORD=votremotdepasse
+# Éditer .env (mots de passe, clés)
+nano .env
+
+# Lancer avec Docker Compose
+docker-compose up -d
+
+# Vérifier logs
+docker-compose logs -f safe-space-backend
+```
+
+### Accès
+
+- **API Backend** : http://localhost:8080
+- **Swagger UI** : http://localhost:8080/swagger-ui.html
+- **PostgreSQL** : localhost:5432 (DB: safe_space_db)
+
+---
+
+## ⚙️ Configuration
+
+### Profils Spring
+
+1. **dev** - Développement local
+2. **test** - Tests automatisés
+3. **prod** - Production
+
+### Variables d'Environnement
+
+```bash
+# Base de données
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=safe_space_db
+DB_USER=safespace_user
+DB_PASSWORD=VotreMotDePasseSecurise123!
+
+# JWT
+JWT_SECRET=VotreCleSecrete256BitsMinimum
+JWT_ACCESS_TOKEN_EXPIRATION=900000
+JWT_REFRESH_TOKEN_EXPIRATION=604800000
+
+# Chiffrement
+ENCRYPTION_MASTER_KEY=VotreMasterKey256Bits
 ```
 
 ---
 
-## 📊 Endpoints Disponibles
+## 📚 API Documentation
 
-### Actuator (Monitoring)
+### Swagger UI
 
-| Endpoint | Description | Accès |
-|----------|-------------|-------|
-| `GET /actuator/health` | État de l'application | Public |
-| `GET /actuator/info` | Informations système | Public |
-| `GET /actuator/metrics` | Métriques (CPU, RAM) | Public |
+**Dev** : http://localhost:8080/swagger-ui.html
 
-### API (À venir)
+### Endpoints Principaux
 
-| Endpoint | Méthode | Description | Auth |
-|----------|---------|-------------|------|
-| `/api/auth/register` | POST | Inscription | ❌ |
-| `/api/auth/login` | POST | Connexion (JWT) | ❌ |
-| `/api/ressources` | GET | Liste des ressources | ✅ |
-| `/api/ressources` | POST | Créer une ressource | ✅ |
-| `/api/ressources/{id}/approve` | PUT | Valider (MODERATEUR) | ✅ |
-| `/api/ressources/search` | GET | Recherche géolocalisée | ✅ |
+#### 🔐 Authentification
+```
+POST   /api/auth/register        # Inscription
+POST   /api/auth/login           # Connexion → JWT
+POST   /api/auth/refresh         # Refresh token
+POST   /api/auth/logout          # Déconnexion
+```
+
+#### 📝 Signalements
+```
+POST   /api/signalements         # Créer signalement
+GET    /api/signalements         # Liste signalements
+GET    /api/signalements/{id}    # Détails
+POST   /api/signalements/{id}/submit  # Soumettre
+```
+
+#### 📦 Preuves
+```
+POST   /api/evidences/upload     # Upload preuve
+GET    /api/evidences            # Liste preuves
+GET    /api/evidences/{id}/download  # Télécharger
+```
+
+#### 🤝 Mise à Disposition
+```
+POST   /api/evidence-offers/create     # Proposer preuve
+GET    /api/evidence-offers/for-me     # Voir preuves dispo
+POST   /api/evidence-offers/{id}/accept  # Accepter
+```
+
+#### 🗺️ Ressources
+```
+GET    /api/ressources/search    # Recherche géolocalisée
+```
+
+---
+
+## 🗄️ Base de Données
+
+### Tables Principales
+
+- `users` - Utilisateurs
+- `signalements` - Signalements (victimes)
+- `evidences` - Preuves chiffrées
+- `evidence_offers` - Propositions témoins
+- `evidence_shares` - Partages avocats/RH
+- `ressources` - Ressources géolocalisées
+- `qualification_rules` - Règles IA
+
+### Extensions PostgreSQL
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- Chiffrement
+CREATE EXTENSION IF NOT EXISTS postgis;   -- Géolocalisation
+```
+
+---
+
+## 🔐 Sécurité
+
+### Authentification
+- JWT (Access: 15min, Refresh: 7 jours)
+- BCrypt (cost 12)
+- 2FA (optionnel)
+
+### Chiffrement
+- Fichiers : AES-256-GCM
+- Données BDD : pgcrypto
+- TLS 1.3 (production)
+
+### RBAC
+- `VICTIM` - Victimes
+- `WITNESS` - Témoins
+- `MODERATOR` - Modérateurs
+- `ADMIN` - Administrateurs
+
+### RGPD
+- ✅ Anonymisation
+- ✅ Consentement explicite
+- ✅ Durée conservation limitée
+- ✅ Droits utilisateurs
+- ✅ Audit logs
 
 ---
 
 ## 🧪 Tests
+
 ```bash
-# Lancer tous les tests
+# Tous les tests
 ./mvnw test
 
-# Lancer les tests avec rapport de couverture
-./mvnw verify
+# Coverage (> 80%)
+./mvnw jacoco:report
 ```
 
 ---
 
-## 📁 Structure du Projet
+## 🚀 Déploiement
+
+### Docker Compose
+```bash
+docker-compose up -d
 ```
-safe-space-backend/
-├── docker-compose.yml              # Orchestration Docker
-├── .env.example                    # Template configuration
-├── .gitignore                      # Fichiers ignorés par Git
-├── README.md                       # Ce fichier
-│
-└── gestion-securite-service/       # Service C (Spring Boot)
-    ├── src/
-    │   ├── main/
-    │   │   ├── java/com/safespace/gestion_securite_service/
-    │   │   │   ├── GestionSecuriteServiceApplication.java
-    │   │   │   ├── config/
-    │   │   │   │   └── SecurityConfigDev.java
-    │   │   │   ├── controller/     # À venir
-    │   │   │   ├── service/        # À venir
-    │   │   │   ├── repository/     # À venir
-    │   │   │   ├── model/          # À venir
-    │   │   │   └── dto/            # À venir
-    │   │   └── resources/
-    │   │       └── application.yml
-    │   └── test/
-    ├── Dockerfile
-    └── pom.xml
+
+### Production (Heroku)
+```bash
+heroku create safe-space-backend
+heroku addons:create heroku-postgresql
+git push heroku main
 ```
 
 ---
 
-## 🔒 Sécurité
+## 🗺️ Roadmap
 
-### Bonnes Pratiques Implémentées
+### ✅ MVP (Nov 2025 - Jan 2026)
+- [x] Auth JWT
+- [x] Signalements + Preuves
+- [x] Témoins → Victimes
+- [x] IA Classification
+- [x] Géolocalisation
+- [x] Docker
 
-- ✅ **Mots de passe chiffrés** avec BCrypt
-- ✅ **JWT** pour l'authentification stateless
-- ✅ **RBAC** (Role-Based Access Control)
-- ✅ **CORS** configuré
-- ✅ **Variables d'environnement** pour les secrets
-- ✅ `.gitignore` pour ne pas commiter `.env`
-- ✅ **Utilisateur non-root** dans Docker
+### 🎁 Bonus (Jan-Fév 2026)
+- [ ] 2FA
+- [ ] Horodatage certifié
+- [ ] MLOps
+- [ ] CI/CD
 
-### Spring Security
-
-- **Profil dev** : Sécurité désactivée pour faciliter le développement
-- **Profil prod** : JWT + authentification complète
-
----
-
-## 🌍 Roadmap
-
-### Phase 1 : Setup & Authentification ✅
-- [x] Configuration Spring Boot
-- [x] Docker Compose
-- [x] PostgreSQL
-- [x] Actuator
-- [ ] Entités JPA (User, Role)
-- [ ] API Auth (Register, Login)
-
-### Phase 2 : Gestion des Ressources 🔄
-- [ ] Entité Ressource + Repository
-- [ ] CRUD Ressources
-- [ ] Workflow de modération
-- [ ] Tests unitaires
-
-### Phase 3 : Géolocalisation 📅
-- [ ] Intégration PostGIS
-- [ ] Recherche par rayon
-- [ ] Calcul de distance
-
-### Phase 4 : Intégration IA 📅
-- [ ] Communication avec Service A (Python)
-- [ ] Classification des signalements
-- [ ] Recommandations
+Voir [ROADMAP.md](./ROADMAP.md) pour détails.
 
 ---
 
-## 👥 Auteur
+## 📖 Documentation
 
-Alix VEYRAT - Projet personnel  
-📧 alixveyrat@gmail.com  
-🔗 [LinkedIn](https://www.linkedin.com/in/alixveyrat/) 
+- [**PROJET_PITCH.md**](./PROJET.md) - Pitch complet
+- [**USER_STORIES.md**](./US.md) - 42 User Stories
+- [**BACKLOG_PRODUIT.md**](./BACKLOG.md) - Product Backlog
+- [**SPRINTS_PLANNING.md**](./SPRINTS.md) - Planning sprints
+- [**ROADMAP.md**](./ROADMAP.md) - Vision 3 ans
+
 
 ---
 
-## 📄 Licence
+## 🤝 Contribution
 
-Ce projet est réalisé dans le cadre d'un projet académique.
+1. Fork le repository
+2. Crée une branche : `git checkout -b feature/ma-feature`
+3. Commit : `git commit -m "feat: Ma feature"`
+4. Push : `git push origin feature/ma-feature`
+5. Pull Request
+
+---
+
+## 📜 License
+
+MIT License - Copyright (c) 2025 Alix VEYRAT
+
+---
+
+## 📞 Contact
+
+**Auteur** : Alix VEYRAT  
+**Email** : alixveyrat@gmail.com
+**LinkedIn** : https://www.linkedin.com/in/alixveyrat/
+**GitHub** : https://github.com/AlixV-Hub
 
 ---
 
 ## 🙏 Remerciements
 
-- **Spring Boot Team** pour le framework
-- **Anthropic** pour l'assistance IA
-- **PostgreSQL Community** pour la base de données
-- **Docker** pour la conteneurisation
+- Anthropic Claude
+- Spring Boot Team
+- PostgreSQL Community
+- Associations d'aide aux victimes
+- Toustes les participant.e.s
+- Ma fille
+- Mes amies pour leur soutien sans faille
+- Mon futur époux
+- Ada Tech School
+
 
 ---
 
-## 📞 Support
-
-Pour toute question ou problème :
-1. Consulter la [documentation Spring Boot](https://docs.spring.io/spring-boot/)
-2. Vérifier les [issues GitHub](https://github.com/TON_USERNAME/safe-space-backend/issues)
-3. Contacter l'auteur
+**🚀 Ensemble, rendons les lieux de travail plus sûrs !**
 
 ---
 
-**Made with ❤️ and ☕ for a safer space**
+*Dernière mise à jour : 30/10/2025*  
+*Version : 1.0*
